@@ -1,6 +1,7 @@
 # VS user specific files #
 ##########################
 *.suo
+*.csproj.user
 
 # Build output folders #
 ########################
