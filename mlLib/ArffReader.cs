@@ -32,10 +32,17 @@
         /// Reads and parses the data stream in arff format into an instance of class Instances.
         /// </summary>
         /// <param name="dataStream">data stream with arff data</param>
+        /// <param name="classAttributeName">name of the attribute to be used as class</param>
         /// <returns>object containing all training data</returns>
-        public static Instances Read(StreamReader dataStream)
+        public static Instances Read(StreamReader dataStream, string classAttributeName)
         {
+            if (null == dataStream)
+            {
+                throw new ArgumentNullException("dataStream");
+            }
+
             Instances data = new Instances();
+            data.AddClassAttribute(classAttributeName);
 
             // move to the start of the stream - just in case
             dataStream.BaseStream.Seek(0, SeekOrigin.Begin);

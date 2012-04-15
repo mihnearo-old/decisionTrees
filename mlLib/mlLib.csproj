@@ -44,10 +44,13 @@
   <ItemGroup>
     <Compile Include="ArffReader.cs" />
     <Compile Include="Attribute.cs" />
+    <Compile Include="DecisionTree\Node.cs" />
     <Compile Include="Instance.cs" />
     <Compile Include="Instances.cs" />
+    <Compile Include="Learners\ID3Learner.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

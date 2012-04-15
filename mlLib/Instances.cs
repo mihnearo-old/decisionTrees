@@ -21,12 +21,13 @@
 
         #region Private Members
 
+        private string classAttribute;
         private List<Attribute> attributeList;
         private List<Instance> instanceList;
 
         #endregion
 
-        #region Public Methods
+        #region Constructors
 
         /// <summary>
         /// Initializes an instance of the Instances class.
@@ -36,6 +37,53 @@
             this.attributeList = new List<Attribute>();
             this.instanceList = new List<Instance>();
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Gets the list of attributes.
+        /// </summary>
+        public Attribute[] Attributes
+        {
+            get
+            {
+                return this.attributeList.ToArray();
+            }
+
+            private set {}
+        }
+
+        /// <summary>
+        /// Gets the name of the attribute storing the class for the examples.
+        /// </summary>
+        public Attribute ClassAttribute
+        {
+            get
+            {
+                return this.attributeList.Where(a => a.Name.Equals(this.classAttribute)).First();
+            }
+
+            private set {}
+        }
+
+        /// <summary>
+        /// Gets the list of data examples.
+        /// </summary>
+        public Instance[] Examples
+        {
+            get
+            {
+                return this.instanceList.ToArray();
+            }
+
+            private set {}
+        }
+
+        #endregion
+
+        #region Public Methods
 
         /// <summary>
         /// Adds an attribute definition to the container.
@@ -60,6 +108,20 @@
 
             // add the attribute object to the list
             this.attributeList.Add(attribute);
+        }
+        
+        /// <summary>
+        /// Adds the attribute used to predict the class of items.
+        /// </summary>
+        /// <param name="name">name of the attribute</param>
+        public void AddClassAttribute(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentNullException("name");
+            }
+
+            this.classAttribute = name;
         }
 
         /// <summary>

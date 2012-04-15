@@ -8,8 +8,11 @@
     /// <summary>
     /// Class implements a container for the the data instance.
     /// </summary>
-    class Instance
+    public class Instance
     {
+        /// <summary>
+        /// Gets and sets the data for the instance
+        /// </summary>
         public Dictionary<string, string> Data
         {
             get;
