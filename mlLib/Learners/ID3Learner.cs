@@ -43,7 +43,7 @@
         private Node Learn(Instance[] instanceList, mlLib.Attribute[] attributeList, mlLib.Attribute classAttribute)
         {
             // compute the class distribution of all the examples
-            Dictionary<string, int> classDistribution = GetClassDistribution(instanceList, classAttribute);
+            var classDistribution = GetClassDistribution(instanceList, classAttribute);
 
             string[] classesWithExamples = classDistribution.Where(a => a.Value > 0).Select(a => a.Key).ToArray();
             if (1 == classesWithExamples.Length)
@@ -68,24 +68,37 @@
                 };
             }
 
-            mlLib.Attribute decisionAttribute = GetDecisionAttribute(attributeList);
+            var decisionAttribute = GetDecisionAttribute(instanceList, attributeList, classAttribute);
             if (null == decisionAttribute)
             {
-                throw new Exception("Unexpected error.");
+                // can't find a attribute to split on that passes the split-termination condition
+                return new Node()
+                {
+                    Label = mostCommonClass,
+                    Children = null
+                };
             }
 
             // recursively build the tree
-            Node root = new Node()
+            var root = new Node()
             {
                 Label = decisionAttribute.Name,
                 Children = new Dictionary<string, Node>()
             };
 
+            // pre-process the instances
+            var instanceGroups = instanceList
+                .GroupBy(a => a.Data[decisionAttribute.Name])
+                .ToDictionary(g => g.Key, v => v.ToArray());
+
+            // build the sub-trees
+            // Note: by looping over the set of possible values for the attribute
+            //       we will drop any instances with unknown values for the attribute
             foreach (string value in decisionAttribute.Values)
             {
                 Node childNode = null;
 
-                Instance[] valueInstances = instanceList.Where(a => a.Data[decisionAttribute.Name].Equals(value)).ToArray();
+                Instance[] valueInstances = instanceGroups[value];
                 if (0 == valueInstances.Length)
                 {
                     // if there are not example for the node value assign the 
@@ -111,15 +124,78 @@
             return root;
         }
 
-        private mlLib.Attribute GetDecisionAttribute(mlLib.Attribute[] attributeList)
+        private mlLib.Attribute GetDecisionAttribute(Instance[] instanceList, mlLib.Attribute[] attributeList, mlLib.Attribute classAttribute)
         {
-            return attributeList[0];
+            mlLib.Attribute decisionAttribute = null;
+            double decisionAttributeEntropy = double.MaxValue;
+
+            // compute entropy of each attribute
+            foreach (mlLib.Attribute attribute in attributeList)
+            {
+                double attributeEntropy = ComputeAttributeEntropy(instanceList, classAttribute, attribute);
+                if (decisionAttributeEntropy > attributeEntropy)
+                {
+                    // found a better attribute
+                    decisionAttribute = attribute;
+                    decisionAttributeEntropy = attributeEntropy;
+                }
+            }
+
+            return decisionAttribute;
+        }
+
+        private static double ComputeAttributeEntropy(Instance[] instanceList, mlLib.Attribute classAttribute, mlLib.Attribute attribute)
+        {
+            double attributeEntropy = 0.0f;
+
+            var groupedInstances = instanceList.GroupBy(i => i.Data[attribute.Name]);
+            foreach (var instanceGroup in groupedInstances)
+            {
+                // lets drop the group of instances with unknow values
+                if (instanceGroup.Key.Equals(Instances.UnknownValue))
+                {
+                    continue;
+                }
+
+                // get the class distribution for the value
+                Dictionary<string, int> classDistribution = GetClassDistribution(instanceGroup.ToArray(), classAttribute);
+
+                // get the entropy of the value
+                double valueEntropy = ComputeEntropy(instanceGroup.Count(), classDistribution);
+
+                // compute the attribute entropy
+                attributeEntropy += (double)instanceGroup.Count() / (double)instanceList.Count() * valueEntropy;
+            }
+
+            return attributeEntropy;
+        }
+
+        private static double ComputeEntropy(int totalExamples, Dictionary<string, int> classDistribution)
+        {
+            double result = 0;
+            foreach (var distrib in classDistribution)
+            {
+                double p = 0.0f;
+                if (0 != totalExamples)
+                {
+                    p = (double)distrib.Value / (double)totalExamples;
+                }
+
+                if (p.Equals(0.0f))
+                {
+                    continue;
+                }
+
+                result += (-1.0f) * p * Math.Log(p);
+            }
+
+            return result;
         }
 
         private static Dictionary<string, int> GetClassDistribution(Instance[] instanceList, mlLib.Attribute classAttribute)
         {
             // lets check some termination conditions
-            Dictionary<string, int> classDistribution = new Dictionary<string, int>();
+            var classDistribution = new Dictionary<string, int>();
             foreach (string value in classAttribute.Values)
             {
                 classDistribution.Add(value, 0);
