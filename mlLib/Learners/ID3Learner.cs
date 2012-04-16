@@ -13,7 +13,25 @@
     /// </summary>
     public class ID3Learner
     {
+        #region Member Variables
+
+        private double splitStoppingConfidenceLevel = 0.0f;
+        private bool handleUnknownAsValue = false;
+
+        #endregion
+
         #region Public Methods
+
+        /// <summary>
+        /// Intializes an instance of the ID3Learner class.
+        /// </summary>
+        /// <param name="splitStoppingConfidenceLevel">confidence leve for split stopping test</param>
+        /// <param name="handleUnknownAsValue">flag specifying how unknown attribute values should be handled</param>
+        public ID3Learner(double splitStoppingConfidenceLevel, bool handleUnknownAsValue)
+        {
+            this.splitStoppingConfidenceLevel = splitStoppingConfidenceLevel;
+            this.handleUnknownAsValue = handleUnknownAsValue;
+        }
 
         /// <summary>
         /// Learns a decision tree model for the data passed as arguments
@@ -30,9 +48,26 @@
                 throw new ArgumentException("data");
             }
 
+            // adjust the attribute list
+            var attributeList = data.Attributes.Where(a => !a.Name.Equals(data.ClassAttribute.Name));
+            if (this.handleUnknownAsValue)
+            {
+                attributeList = attributeList.Select(a => 
+                    {
+                        List<string> values = a.Values.ToList();
+                        values.Add(Instances.UnknownValue);
+
+                        return new mlLib.Attribute()
+                        {
+                            Name = a.Name,
+                            Values = values.ToArray()
+                        };
+                    });
+            }
+
             return Learn(
-                data.Examples, 
-                data.Attributes.Where(a => !a.Name.Equals(data.ClassAttribute.Name)).ToArray(), 
+                data.Examples,
+                attributeList.ToArray(), 
                 data.ClassAttribute);
         }
 
@@ -68,7 +103,7 @@
                 };
             }
 
-            var decisionAttribute = GetDecisionAttribute(instanceList, attributeList, classAttribute);
+            var decisionAttribute = GetDecisionAttribute(instanceList, attributeList, classDistribution, classAttribute);
             if (null == decisionAttribute)
             {
                 // can't find a attribute to split on that passes the split-termination condition
@@ -92,14 +127,12 @@
                 .ToDictionary(g => g.Key, v => v.ToArray());
 
             // build the sub-trees
-            // Note: by looping over the set of possible values for the attribute
-            //       we will drop any instances with unknown values for the attribute
             foreach (string value in decisionAttribute.Values)
             {
                 Node childNode = null;
 
-                Instance[] valueInstances = instanceGroups[value];
-                if (0 == valueInstances.Length)
+                if (!instanceGroups.ContainsKey(value)
+                    || 0 == instanceGroups[value].Length)
                 {
                     // if there are not example for the node value assign the 
                     // label of most instances to the value branch
@@ -115,7 +148,7 @@
 
                 // build the subtree recursively
                 childNode = this.Learn(
-                    valueInstances, 
+                    instanceGroups[value], 
                     attributeList.Where(a => !a.Name.Equals(decisionAttribute.Name)).ToArray(), 
                     classAttribute);
                 root.Children.Add(value, childNode);
@@ -124,7 +157,7 @@
             return root;
         }
 
-        private mlLib.Attribute GetDecisionAttribute(Instance[] instanceList, mlLib.Attribute[] attributeList, mlLib.Attribute classAttribute)
+        private mlLib.Attribute GetDecisionAttribute(Instance[] instanceList, mlLib.Attribute[] attributeList, Dictionary<string, int> classDistribution, mlLib.Attribute classAttribute)
         {
             mlLib.Attribute decisionAttribute = null;
             double decisionAttributeEntropy = double.MaxValue;
@@ -132,7 +165,24 @@
             // compute entropy of each attribute
             foreach (mlLib.Attribute attribute in attributeList)
             {
-                double attributeEntropy = ComputeAttributeEntropy(instanceList, classAttribute, attribute);
+                // group the instances by their values for the attribute being evaluated
+                var groupedInstanceList = instanceList.GroupBy(i => i.Data[attribute.Name]);
+                if (!this.handleUnknownAsValue)
+                {
+                    groupedInstanceList = groupedInstanceList.Where(g => !g.Key.Equals(Instances.UnknownValue));
+                }
+
+                // compute the chi-squared statistic for the data
+                double dataChiSquared = ComputeAttributeChiSquared(groupedInstanceList, instanceList.Length, classDistribution, classAttribute);
+                double criticalChiSquared = ChiSquare.CriticalChiSquareValue(1.0f - this.splitStoppingConfidenceLevel, attribute.Values.Length - 1);
+                //System.Console.Out.WriteLine("Chi-Square test for [{0}]: data=[{1}] critical=[{2}]", attribute.Name, dataChiSquared, criticalChiSquared);
+                if (dataChiSquared < criticalChiSquared)
+                {
+                    // attribute did not pass chi-square split test
+                    continue;
+                }
+
+                double attributeEntropy = ComputeAttributeEntropy(groupedInstanceList, instanceList.Length, classAttribute);
                 if (decisionAttributeEntropy > attributeEntropy)
                 {
                     // found a better attribute
@@ -141,22 +191,53 @@
                 }
             }
 
+            if (null != decisionAttribute)
+            {
+                System.Console.Out.WriteLine("Selected Attribute - name=[{0}] entropy=[{1}].", decisionAttribute.Name, decisionAttributeEntropy);
+            }
+            else
+            {
+                System.Console.Out.WriteLine("No relevant attribute found.");
+            }
+
             return decisionAttribute;
         }
 
-        private static double ComputeAttributeEntropy(Instance[] instanceList, mlLib.Attribute classAttribute, mlLib.Attribute attribute)
+        private double ComputeAttributeChiSquared(IEnumerable<IGrouping<string, Instance>> groupedInstanceList, int totlaInstanceCount, Dictionary<string, int> classDistribution, mlLib.Attribute classAttribute)
         {
-            double attributeEntropy = 0.0f;
-
-            var groupedInstances = instanceList.GroupBy(i => i.Data[attribute.Name]);
-            foreach (var instanceGroup in groupedInstances)
+            double attributeDeviation = 0.0f;
+            foreach (var group in groupedInstanceList)
             {
-                // lets drop the group of instances with unknow values
-                if (instanceGroup.Key.Equals(Instances.UnknownValue))
+                var attributeValueClassDistribution = GetClassDistribution(group.ToArray(), classAttribute);
+                if (null == attributeValueClassDistribution)
                 {
-                    continue;
+                    throw new Exception("Unexpected exception.");
                 }
 
+                foreach (var classValue in classDistribution)
+                {
+                    // compute the expected probability for the class value
+                    double expectedInstances = (double)classValue.Value / (double)totlaInstanceCount * group.Count();
+
+                    // get the actual instances
+                    double actualInstances = (double)attributeValueClassDistribution[classValue.Key];
+
+                    // adjust result value
+                    attributeDeviation +=
+                        Math.Pow(actualInstances - expectedInstances, 2.0f) / expectedInstances;
+
+                    //System.Console.Out.WriteLine("Chi-Square for [{0}]-[{1}]: act_int[{2}] exp_inst=[{3}] dev=[{4}]", group.Key, classValue.Key, actualInstances, expectedInstances, attributeDeviation);
+                }
+            }
+
+            return attributeDeviation;
+        }
+
+        private double ComputeAttributeEntropy(IEnumerable<IGrouping<string, Instance>> groupedInstanceList, int totlaInstanceCount, mlLib.Attribute classAttribute)
+        {
+            double attributeEntropy = 0.0f;
+            foreach (var instanceGroup in groupedInstanceList)
+            {
                 // get the class distribution for the value
                 Dictionary<string, int> classDistribution = GetClassDistribution(instanceGroup.ToArray(), classAttribute);
 
@@ -164,7 +245,7 @@
                 double valueEntropy = ComputeEntropy(instanceGroup.Count(), classDistribution);
 
                 // compute the attribute entropy
-                attributeEntropy += (double)instanceGroup.Count() / (double)instanceList.Count() * valueEntropy;
+                attributeEntropy += (double)instanceGroup.Count() / (double)totlaInstanceCount * valueEntropy;
             }
 
             return attributeEntropy;

@@ -13,6 +13,8 @@
     {
         static void Main(string[] args)
         {
+            DateTime start = DateTime.Now;
+
             Instances data = null;
             
             // read in the data from file
@@ -23,12 +25,13 @@
 
             
             // learn the tree
-            ID3Learner learner = new ID3Learner();
+            ID3Learner learner = new ID3Learner(0.95, true);
             Node decisionTree = learner.Learn(data);
 
             // output the tree
             System.Console.Out.WriteLine(decisionTree);
 
+            System.Console.Out.WriteLine("Runtime: {0}", (DateTime.Now - start).ToString("c"));
             System.Console.Out.WriteLine("Press any key to exit");
             System.Console.Read();
         }
