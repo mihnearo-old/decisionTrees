@@ -25,7 +25,7 @@
 
             
             // learn the tree
-            ID3Learner learner = new ID3Learner(0.95, true);
+            ID3Learner learner = new ID3Learner(0.0, true);
             Node decisionTree = learner.Learn(data);
 
             // output the tree

@@ -42,12 +42,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ArffReader.cs" />
-    <Compile Include="Attribute.cs" />
+    <Compile Include="Arff\ArffReader.cs" />
+    <Compile Include="Arff\Attribute.cs" />
     <Compile Include="ChiSquare.cs" />
     <Compile Include="DecisionTree\Node.cs" />
-    <Compile Include="Instance.cs" />
-    <Compile Include="Instances.cs" />
+    <Compile Include="Arff\Instance.cs" />
+    <Compile Include="Arff\Instances.cs" />
     <Compile Include="Learners\ID3Learner.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
