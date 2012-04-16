@@ -1,4 +1,4 @@
-﻿namespace mlLib
+﻿namespace mlLib.Arff
 {
     using System;
     using System.Collections.Generic;

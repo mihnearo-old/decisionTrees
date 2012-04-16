@@ -5,7 +5,7 @@
     using System.Linq;
     using System.Text;
     using System.IO;
-    using mlLib;
+    using mlLib.Arff;
     using mlLib.DecisionTree;
     using mlLib.Learners;
 

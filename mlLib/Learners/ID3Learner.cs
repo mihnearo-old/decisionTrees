@@ -3,7 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using mlLib;
+    using mlLib.Arff;
     using mlLib.DecisionTree;
 
 
@@ -56,7 +56,7 @@
                         List<string> values = a.Values.ToList();
                         values.Add(Instances.UnknownValue);
 
-                        return new mlLib.Attribute()
+                        return new Arff.Attribute()
                         {
                             Name = a.Name,
                             Values = values.ToArray()
@@ -74,7 +74,7 @@
 
         #region Private Methods
 
-        private Node Learn(Instance[] instanceList, mlLib.Attribute[] attributeList, mlLib.Attribute classAttribute)
+        private Node Learn(Instance[] instanceList, Arff.Attribute[] attributeList, Arff.Attribute classAttribute)
         {
             // compute the class distribution of all the examples
             var classDistribution = GetClassDistribution(instanceList, classAttribute);
@@ -156,13 +156,13 @@
             return root;
         }
 
-        private mlLib.Attribute GetDecisionAttribute(Instance[] instanceList, mlLib.Attribute[] attributeList, Dictionary<string, int> classDistribution, mlLib.Attribute classAttribute)
+        private Arff.Attribute GetDecisionAttribute(Instance[] instanceList, Arff.Attribute[] attributeList, Dictionary<string, int> classDistribution, Arff.Attribute classAttribute)
         {
-            mlLib.Attribute decisionAttribute = null;
+            Arff.Attribute decisionAttribute = null;
             double decisionAttributeEntropy = double.MaxValue;
 
             // compute entropy of each attribute
-            foreach (mlLib.Attribute attribute in attributeList)
+            foreach (Arff.Attribute attribute in attributeList)
             {
                 // group the instances by their values for the attribute being evaluated
                 var groupedInstanceList = instanceList.GroupBy(i => i.Data[attribute.Name]);
@@ -202,7 +202,7 @@
             return decisionAttribute;
         }
 
-        private double ComputeAttributeChiSquared(IEnumerable<IGrouping<string, Instance>> groupedInstanceList, int totlaInstanceCount, Dictionary<string, int> classDistribution, mlLib.Attribute classAttribute)
+        private double ComputeAttributeChiSquared(IEnumerable<IGrouping<string, Instance>> groupedInstanceList, int totlaInstanceCount, Dictionary<string, int> classDistribution, Arff.Attribute classAttribute)
         {
             double attributeDeviation = 0.0f;
             foreach (var group in groupedInstanceList)
@@ -232,7 +232,7 @@
             return attributeDeviation;
         }
 
-        private double ComputeAttributeEntropy(IEnumerable<IGrouping<string, Instance>> groupedInstanceList, int totlaInstanceCount, mlLib.Attribute classAttribute)
+        private double ComputeAttributeEntropy(IEnumerable<IGrouping<string, Instance>> groupedInstanceList, int totlaInstanceCount, Arff.Attribute classAttribute)
         {
             double attributeEntropy = 0.0f;
             foreach (var instanceGroup in groupedInstanceList)
@@ -272,7 +272,7 @@
             return result;
         }
 
-        private static Dictionary<string, int> GetClassDistribution(Instance[] instanceList, mlLib.Attribute classAttribute)
+        private static Dictionary<string, int> GetClassDistribution(Instance[] instanceList, Arff.Attribute classAttribute)
         {
             // lets check some termination conditions
             var classDistribution = new Dictionary<string, int>();
