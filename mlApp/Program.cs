@@ -6,6 +6,7 @@
     using System.Text;
     using System.IO;
     using mlLib.Arff;
+    using mlLib.Classifier;
     using mlLib.DecisionTree;
     using mlLib.Learner;
 
@@ -30,6 +31,14 @@
 
             // output the tree
             System.Console.Out.WriteLine(decisionTree);
+
+            // classify the items
+            DTClassifier classifier = new DTClassifier(decisionTree);
+            foreach (Instance example in data.Examples)
+            {
+                string predictedClass = classifier.Classify(example);
+                System.Console.Out.WriteLine("Classifier predictedClass=[{0}] item=[{1}]", predictedClass, example);
+            }
 
             System.Console.Out.WriteLine("Runtime: {0}", (DateTime.Now - start).ToString("c"));
             System.Console.Out.WriteLine("Press any key to exit");
