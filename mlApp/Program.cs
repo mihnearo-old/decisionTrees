@@ -7,7 +7,7 @@
     using System.IO;
     using mlLib.Arff;
     using mlLib.DecisionTree;
-    using mlLib.Learners;
+    using mlLib.Learner;
 
     class Program
     {

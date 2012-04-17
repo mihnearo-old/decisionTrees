@@ -1,4 +1,4 @@
-﻿namespace mlLib.Learners
+﻿namespace mlLib.Learner
 {
     using System;
     using System.Collections.Generic;
