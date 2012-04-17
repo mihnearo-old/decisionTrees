@@ -90,7 +90,7 @@
                 };
             }
 
-            string mostCommonClass = classDistribution.OrderBy(a => a.Value).First().Key;
+            string mostCommonClass = classDistribution.OrderBy(a => a.Value).Last().Key;
             if (null == attributeList
                 || 0 == attributeList.Length)
             {
