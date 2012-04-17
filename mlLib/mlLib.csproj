@@ -49,6 +49,7 @@
     <Compile Include="DecisionTree\Node.cs" />
     <Compile Include="Arff\Instance.cs" />
     <Compile Include="Arff\Instances.cs" />
+    <Compile Include="Evaluator\AccuracyEvaluator.cs" />
     <Compile Include="Learner\ID3Learner.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
