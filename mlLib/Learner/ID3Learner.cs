@@ -5,7 +5,7 @@
     using System.Linq;
     using mlLib.Arff;
     using mlLib.DecisionTree;
-
+    using mlLib.Log;
 
     /// <summary>
     /// Class implements a ID3 decision tree learner
@@ -16,6 +16,7 @@
 
         private double splitStoppingConfidenceLevel = 0.0f;
         private bool handleUnknownAsValue = false;
+        private bool useGainRatio = false;
 
         #endregion
 
@@ -26,10 +27,12 @@
         /// </summary>
         /// <param name="splitStoppingConfidenceLevel">confidence leve for split stopping test</param>
         /// <param name="handleUnknownAsValue">flag specifying how unknown attribute values should be handled</param>
-        public ID3Learner(double splitStoppingConfidenceLevel, bool handleUnknownAsValue)
+        /// <param name="useGainRatio">flag indicating if gain or gain ratio should be used for attribute selection</param>
+        public ID3Learner(double splitStoppingConfidenceLevel, bool handleUnknownAsValue, bool useGainRatio)
         {
             this.splitStoppingConfidenceLevel = splitStoppingConfidenceLevel;
             this.handleUnknownAsValue = handleUnknownAsValue;
+            this.useGainRatio = useGainRatio;
         }
 
         /// <summary>
@@ -159,7 +162,10 @@
         private Arff.Attribute GetDecisionAttribute(Instance[] instanceList, Arff.Attribute[] attributeList, Dictionary<string, int> classDistribution, Arff.Attribute classAttribute)
         {
             Arff.Attribute decisionAttribute = null;
-            double decisionAttributeEntropy = double.MaxValue;
+            double decisionAttributeGain = double.MinValue;
+
+            // compute entropy
+            double entropy = ComputeEntropy(instanceList.Length, classDistribution);
 
             // compute entropy of each attribute
             foreach (Arff.Attribute attribute in attributeList)
@@ -174,29 +180,44 @@
                 // compute the chi-squared statistic for the data
                 double dataChiSquared = ComputeAttributeChiSquared(groupedInstanceList, instanceList.Length, classDistribution, classAttribute);
                 double criticalChiSquared = ChiSquare.CriticalChiSquareValue(1.0f - this.splitStoppingConfidenceLevel, attribute.Values.Length - 1);
-                //System.Console.Out.WriteLine("Chi-Square test for [{0}]: data=[{1}] critical=[{2}]", attribute.Name, dataChiSquared, criticalChiSquared);
+                Logger.Log(LogLevel.Info, "Chi-Square test for [{0}]: data=[{1}] critical=[{2}]", attribute.Name, dataChiSquared, criticalChiSquared);
+
                 if (dataChiSquared < criticalChiSquared)
                 {
                     // attribute did not pass chi-square split test
                     continue;
                 }
 
+                // compute the attribute entropy
                 double attributeEntropy = ComputeAttributeEntropy(groupedInstanceList, instanceList.Length, classAttribute);
-                if (decisionAttributeEntropy > attributeEntropy)
+
+                // compute the gain
+                double attributeGain = entropy - attributeEntropy;
+
+                if (this.useGainRatio)
+                {
+                    // compute the gain ratio
+                    double splitInfo = this.ComputeAttributeSplitInfo(groupedInstanceList, instanceList.Length);
+
+                    attributeGain = attributeGain / splitInfo;
+                }
+
+                // check the attribute
+                if (decisionAttributeGain < attributeGain)
                 {
                     // found a better attribute
                     decisionAttribute = attribute;
-                    decisionAttributeEntropy = attributeEntropy;
+                    decisionAttributeGain = attributeGain;
                 }
             }
 
             if (null != decisionAttribute)
             {
-                System.Console.Out.WriteLine("Selected Attribute - name=[{0}] entropy=[{1}].", decisionAttribute.Name, decisionAttributeEntropy);
+                Logger.Log(LogLevel.Info, "Selected Attribute - name=[{0}] gain=[{1}].", decisionAttribute.Name, decisionAttributeGain);
             }
             else
             {
-                System.Console.Out.WriteLine("No relevant attribute found.");
+                Logger.Log(LogLevel.Info, "No relevant attribute found.");
             }
 
             return decisionAttribute;
@@ -225,7 +246,7 @@
                     attributeDeviation +=
                         Math.Pow(actualInstances - expectedInstances, 2.0f) / expectedInstances;
 
-                    //System.Console.Out.WriteLine("Chi-Square for [{0}]-[{1}]: act_int[{2}] exp_inst=[{3}] dev=[{4}]", group.Key, classValue.Key, actualInstances, expectedInstances, attributeDeviation);
+                    Logger.Log(LogLevel.Info, "Chi-Square for [{0}]-[{1}]: act_int[{2}] exp_inst=[{3}] dev=[{4}]", group.Key, classValue.Key, actualInstances, expectedInstances, attributeDeviation);
                 }
             }
 
@@ -250,6 +271,21 @@
             return attributeEntropy;
         }
 
+        private double ComputeAttributeSplitInfo(IEnumerable<IGrouping<string, Instance>> groupedInstanceList, int totalInstanceCount)
+        {
+            double splitInfo = 0.0f;
+            foreach (var group in groupedInstanceList)
+            {
+                // compute the split ration
+                double instanceRatio = (double)group.Count() / (double)totalInstanceCount;
+
+                // add the value
+                splitInfo += instanceRatio * Math.Log(instanceRatio);
+            }
+
+            return (-1.0f) * splitInfo;
+        }
+
         private static double ComputeEntropy(int totalExamples, Dictionary<string, int> classDistribution)
         {
             double result = 0;
@@ -270,7 +306,7 @@
             }
 
             return result;
-        }
+        }        
 
         private static Dictionary<string, int> GetClassDistribution(Instance[] instanceList, Arff.Attribute classAttribute)
         {

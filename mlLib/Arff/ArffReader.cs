@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Text.RegularExpressions;
+    using mlLib.Log;
 
     /// <summary>
     /// Class reads and parses a data file in arff format.
@@ -92,6 +93,12 @@
             }
 
             data.AddInstance(valueList);
+
+            if (data.Examples.Length % 1000 == 0)
+            {
+                // output some progress
+                Logger.Log(LogLevel.Progress, " {0}", data.Examples.Length);
+            }
         }
 
         private static void ParseMetadataLine(string line, ref Instances data)

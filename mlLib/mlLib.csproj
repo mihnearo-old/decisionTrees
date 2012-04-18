@@ -51,6 +51,7 @@
     <Compile Include="Arff\Instances.cs" />
     <Compile Include="Evaluator\AccuracyEvaluator.cs" />
     <Compile Include="Learner\ID3Learner.cs" />
+    <Compile Include="Log\Logger.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />
