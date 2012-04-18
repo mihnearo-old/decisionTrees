@@ -6,6 +6,7 @@
     using System.Text;
     using mlLib.Arff;
     using mlLib.DecisionTree;
+    using mlLib.Log;
 
     /// <summary>
     /// Class implements a decision tree based classifier.
@@ -39,6 +40,8 @@
         /// <returns>class label</returns>
         public string Classify(Instance data)
         {
+            StringBuilder trace = new StringBuilder();
+
             Node current = this.model;
             while (null != current)
             {
@@ -46,6 +49,10 @@
                 {
                     // we have reaced a leaf node - label contains the 
                     // class name
+                    trace.Append("\t");
+                    trace.Append(current.Label);
+                    Logger.Log(LogLevel.Trace, trace.ToString());
+
                     return current.Label;
                 }
 
@@ -59,6 +66,13 @@
                 {
                     throw new ArgumentException("Data sample is incompativle with the model!");
                 }
+
+                // record trace
+                trace.Append("(");
+                trace.Append(current.Label);
+                trace.Append("|");
+                trace.Append(attributeValue);
+                trace.Append(")");
 
                 // pick the branch
                 current = current.Children[attributeValue];

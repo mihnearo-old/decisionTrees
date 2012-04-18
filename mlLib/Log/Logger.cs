@@ -29,7 +29,12 @@
         /// <summary>
         /// Application progress should be logged using this level. Gets written to system out.
         /// </summary>
-        Progress = 8
+        Progress = 8,
+
+        /// <summary>
+        /// Trace messages to generate some output.
+        /// </summary>
+        Trace = 16
     };
 
     /// <summary>
@@ -43,6 +48,11 @@
         /// The log stream to write log messages to.
         /// </summary>
         public static TextWriter LogWriter = System.Console.Out;
+
+        /// <summary>
+        /// The log stream to write log messages to.
+        /// </summary>
+        public static TextWriter TraceWriter = System.Console.Out;
 
         /// <summary>
         /// Setting indicating what types of messages should be logged.
@@ -70,6 +80,11 @@
             if (LogLevel.Progress == level)
             {
                 System.Console.Out.Write(
+                    string.Format(message, other));
+            }
+            else if (LogLevel.Trace == level)
+            {
+                TraceWriter.WriteLine(
                     string.Format(message, other));
             }
             else

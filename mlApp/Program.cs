@@ -31,8 +31,11 @@
             Logger.OnLogLevel = (int)(LogLevel.Progress | LogLevel.Error | LogLevel.Warning | LogLevel.Info);
             using (Logger.LogWriter = new StreamWriter("log.txt"))
             {
-                Program app = new Program();
-                app.Run(args);
+                using (Logger.TraceWriter = new StreamWriter("trace.txt"))
+                {
+                    Program app = new Program();
+                    app.Run(args);
+                }
             }
         }
 
@@ -73,6 +76,11 @@
 
             Logger.Log(LogLevel.Progress, System.Console.Out.NewLine);
 
+            Logger.OnLogLevel |= (int)LogLevel.Trace;
+            TrainAndEvaluateClassifier(data, testData, 0.999, true);
+            Logger.OnLogLevel &= ~(int)LogLevel.Trace;
+
+            TrainAndEvaluateClassifier(data, testData, 0.999, false);
             TrainAndEvaluateClassifier(data, testData, 0.99, true);
             TrainAndEvaluateClassifier(data, testData, 0.99, false);
             TrainAndEvaluateClassifier(data, testData, 0.95, true);
@@ -122,7 +130,7 @@
             DTClassifier classifier = new DTClassifier(decisionTree);
             AccuracyEvaluator evaluator = new AccuracyEvaluator(classifier);
             double accuracy = evaluator.Evaluate(testData);
-            System.Console.Out.WriteLine("Split Stop. Conf.: {0} Accuracy: {1} UseGainRatio: {2}", splitStoppingConfidence.ToString("0.00"), accuracy.ToString("0.0000"), useGainRatio);
+            System.Console.Out.WriteLine("Split Stop. Conf.: {0} Accuracy: {1} UseGainRatio: {2}", splitStoppingConfidence.ToString("0.000"), accuracy.ToString("0.0000"), useGainRatio);
         }
 
         private Instances LoadDataFile(string filePath)
