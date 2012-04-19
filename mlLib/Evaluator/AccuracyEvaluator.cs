@@ -54,11 +54,6 @@
                 {
                     correct++;
                 }
-
-                if (DateTime.Now.Second % 10 == 0)
-                {
-                    Logger.Log(LogLevel.Progress, ".");
-                }
             }
 
             Logger.Log(LogLevel.Progress, " Done{0}", System.Console.Out.NewLine);
