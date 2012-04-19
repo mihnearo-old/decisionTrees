@@ -79,12 +79,12 @@
             Logger.OnLogLevel |= (int)LogLevel.Trace;
             foreach (double confLvl in this.confidenceLevelList)
             {
-                using (Logger.TraceWriter = new StreamWriter(string.Format("classificationPaths_true_{0}.txt", confLvl.ToString("0.000"))))
+                using (Logger.TraceWriter = new StreamWriter(string.Format("classificationPaths_true_{0}.txt", confLvl.ToString("0.0000"))))
                 {
                     TrainAndEvaluateClassifier(data, testData, confLvl, true);   
                 }
 
-                using (Logger.TraceWriter = new StreamWriter(string.Format("classificationPaths_false_{0}.txt", confLvl.ToString("0.000"))))
+                using (Logger.TraceWriter = new StreamWriter(string.Format("classificationPaths_false_{0}.txt", confLvl.ToString("0.0000"))))
                 {
                     TrainAndEvaluateClassifier(data, testData, confLvl, false);
                 }
@@ -140,7 +140,7 @@
 
             // output the tree
             File.WriteAllText(
-                string.Format("{0}_DTID3_{1}.txt", Path.GetFileNameWithoutExtension(this.trainingDataFilePath), splitStoppingConfidence.ToString("0.00")), 
+                string.Format("{0}_DTID3_{1}_{2}.txt", Path.GetFileNameWithoutExtension(this.trainingDataFilePath), useGainRatio, splitStoppingConfidence.ToString("0.0000")), 
                 decisionTree.ToString());
 
             // evaluate the classifier
@@ -149,7 +149,7 @@
             double accuracy = evaluator.Evaluate(testData);
 
             this.reportData.Add(
-                string.Format("{0}\t\t\t{1}\t\t{2}{3}", splitStoppingConfidence.ToString("0.000"), useGainRatio, accuracy.ToString("0.0000"), System.Console.Out.NewLine));
+                string.Format("{0}\t\t\t{1}\t\t{2}{3}", splitStoppingConfidence.ToString("0.0000"), useGainRatio, accuracy.ToString("0.0000"), System.Console.Out.NewLine));
         }
 
         private Instances LoadDataFile(string filePath)
