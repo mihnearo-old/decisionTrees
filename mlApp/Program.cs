@@ -17,9 +17,11 @@
         #region Private Members
 
         private DateTime startTime = DateTime.Now;
+        private List<string> reportData = null;
 
         private string trainingDataFilePath = null;
         private string testDataFilePath = null;
+        private List<double> confidenceLevelList = null;
 
         #endregion
 
@@ -31,11 +33,8 @@
             Logger.OnLogLevel = (int)(LogLevel.Progress | LogLevel.Error | LogLevel.Warning | LogLevel.Info);
             using (Logger.LogWriter = new StreamWriter("log.txt"))
             {
-                using (Logger.TraceWriter = new StreamWriter("trace.txt"))
-                {
-                    Program app = new Program();
-                    app.Run(args);
-                }
+                Program app = new Program();
+                app.Run(args);
             }
         }
 
@@ -43,6 +42,7 @@
         public Program()
         {
             this.startTime = DateTime.Now;
+            this.reportData = new List<string>();
         }
 
         #endregion
@@ -77,39 +77,56 @@
             Logger.Log(LogLevel.Progress, System.Console.Out.NewLine);
 
             Logger.OnLogLevel |= (int)LogLevel.Trace;
-            TrainAndEvaluateClassifier(data, testData, 0.999, true);
+            foreach (double confLvl in this.confidenceLevelList)
+            {
+                using (Logger.TraceWriter = new StreamWriter(string.Format("classificationPaths_true_{0}.txt", confLvl.ToString("0.000"))))
+                {
+                    TrainAndEvaluateClassifier(data, testData, confLvl, true);   
+                }
+
+                using (Logger.TraceWriter = new StreamWriter(string.Format("classificationPaths_false_{0}.txt", confLvl.ToString("0.000"))))
+                {
+                    TrainAndEvaluateClassifier(data, testData, confLvl, false);
+                }
+            }
             Logger.OnLogLevel &= ~(int)LogLevel.Trace;
 
-            TrainAndEvaluateClassifier(data, testData, 0.999, false);
-            TrainAndEvaluateClassifier(data, testData, 0.99, true);
-            TrainAndEvaluateClassifier(data, testData, 0.99, false);
-            TrainAndEvaluateClassifier(data, testData, 0.95, true);
-            TrainAndEvaluateClassifier(data, testData, 0.95, false);
-            TrainAndEvaluateClassifier(data, testData, 0.50, true);
-            TrainAndEvaluateClassifier(data, testData, 0.50, false);
-            //TrainAndEvaluateClassifier(data, testData, 0.00);
+            Logger.Log(LogLevel.Progress, "{0}Execution Report:{0}{0}", System.Console.Out.NewLine);
+            Logger.Log(LogLevel.Progress, "Split Stop. Conf.\tUseGainRatio\tAccuracy{0}", System.Console.Out.NewLine);
+            Logger.Log(LogLevel.Progress, "-----------------\t------------\t--------{0}", System.Console.Out.NewLine);
+            foreach (string line in this.reportData)
+            {
+                Logger.Log(LogLevel.Progress, line);
+            }
 
             Logger.Log(LogLevel.Progress, System.Console.Out.NewLine);
             Logger.Log(LogLevel.Progress, "Runtime: {0}", this.Runtime.ToString("c"));
             Logger.Log(LogLevel.Progress, System.Console.Out.NewLine);
             Logger.Log(LogLevel.Progress, "Press any key to exit");
-            System.Console.Read();
+            System.Console.ReadKey();
         }
 
         private bool ParseArguments(string[] args)
         {
-            if (1 > args.Length)
+            if (3 != args.Length)
             {
                 System.Console.Out.WriteLine("Usage:");
-                System.Console.Out.WriteLine("mlApp %training_data_file% [%test_data_file%]");
+                System.Console.Out.WriteLine("  mlApp %training_data_file% %test_data_file% %confidence_levels%");
+                System.Console.Out.WriteLine();
+                System.Console.Out.WriteLine("  %confidence_levels% - coma(,) separated list of values from 0 to 1");
 
                 return false;
             }
 
             this.trainingDataFilePath = args[0];
-            if (2 <= args.Length)
+            this.testDataFilePath = args[1];
+            this.confidenceLevelList = new List<double>();
+
+            string[] confLvlList = args[2].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+            foreach (string confLvl in confLvlList)
             {
-                this.testDataFilePath = args[1];
+                this.confidenceLevelList.Add(
+                    double.Parse(confLvl));
             }
 
             return true;
@@ -130,7 +147,9 @@
             DTClassifier classifier = new DTClassifier(decisionTree);
             AccuracyEvaluator evaluator = new AccuracyEvaluator(classifier);
             double accuracy = evaluator.Evaluate(testData);
-            System.Console.Out.WriteLine("Split Stop. Conf.: {0} Accuracy: {1} UseGainRatio: {2}", splitStoppingConfidence.ToString("0.000"), accuracy.ToString("0.0000"), useGainRatio);
+
+            this.reportData.Add(
+                string.Format("{0}\t\t\t{1}\t\t{2}{3}", splitStoppingConfidence.ToString("0.000"), useGainRatio, accuracy.ToString("0.0000"), System.Console.Out.NewLine));
         }
 
         private Instances LoadDataFile(string filePath)

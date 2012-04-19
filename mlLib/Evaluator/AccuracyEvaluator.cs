@@ -6,6 +6,7 @@
     using System.Text;
     using mlLib.Arff;
     using mlLib.Classifier;
+    using mlLib.Log;
 
     /// <summary>
     /// Class implements an evaluator that measures the accuracy of a classifier
@@ -42,6 +43,8 @@
                 throw new ArgumentNullException("data");
             }
 
+            Logger.Log(LogLevel.Progress, "Running Accuracy Evaluator ");
+
             int correct = 0;
             foreach (Instance example in data.Examples)
             {
@@ -51,8 +54,14 @@
                 {
                     correct++;
                 }
+
+                if (DateTime.Now.Second % 10 == 0)
+                {
+                    Logger.Log(LogLevel.Progress, ".");
+                }
             }
 
+            Logger.Log(LogLevel.Progress, " Done{0}", System.Console.Out.NewLine);
             return (double)correct / (double)data.Examples.Length;
         }
 

@@ -50,6 +50,8 @@
                 throw new ArgumentException("data");
             }
 
+            Logger.Log(LogLevel.Progress, "Running ID3Lerner ");
+
             // adjust the attribute list
             var attributeList = data.Attributes.Where(a => !a.Name.Equals(data.ClassAttribute.Name));
             if (this.handleUnknownAsValue)
@@ -67,10 +69,13 @@
                     });
             }
 
-            return Learn(
+            Node dt = Learn(
                 data.Examples,
                 attributeList.ToArray(), 
                 data.ClassAttribute);
+
+            Logger.Log(LogLevel.Progress, " Done{0}", System.Console.Out.NewLine);
+            return dt;
         }
 
         #endregion
@@ -86,6 +91,7 @@
             if (1 == classesWithExamples.Length)
             {
                 // all examples belong to the same class so we have reached a leaf node
+                Logger.Log(LogLevel.Progress, ".");
                 return new Node()
                 {
                     Label = classesWithExamples[0],
@@ -98,6 +104,7 @@
                 || 0 == attributeList.Length)
             {
                 // no more attributes to split on
+                Logger.Log(LogLevel.Progress, ".");
                 return new Node()
                 {
                     Label = mostCommonClass,
@@ -109,6 +116,7 @@
             if (null == decisionAttribute)
             {
                 // can't find a attribute to split on that passes the split-termination condition
+                Logger.Log(LogLevel.Progress, ".");
                 return new Node()
                 {
                     Label = mostCommonClass,
